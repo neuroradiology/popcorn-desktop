@@ -3,9 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="stylesheet" type="text/css" href="/node_modules/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" type="text/css" href="/node_modules/bootstrap/dist/css/bootstrap-theme.css"/>
+    <link rel="stylesheet" type="text/css" href="/node_modules/bootstrap/dist/css/bootstrap-theme.min.css"/>
     <link rel="stylesheet" type="text/css" href="/node_modules/@fortawesome/fontawesome-free/css/all.min.css" />
-    <link rel="stylesheet" type="text/css" href="/node_modules/@fortawesome/fontawesome-free/css/v4-shims.min.css" />
     <link rel="stylesheet" type="text/css" href="/node_modules/video.js/dist/video-js/video-js.min.css">
     <link rel="stylesheet" type="text/css" href="css/animation.css" />
     <link rel="stylesheet" type="text/css" id="theme" href="themes/Official_-_Dark_theme.css" />
@@ -37,7 +36,6 @@
     <script id="vpn-tpl" src="templates/vpn.tpl" type="text/x-template" ></script>
     <script id="file-selector-tpl" src="templates/file-selector.tpl" type="text/x-template" ></script>
     <script id="help-tpl" src="templates/help.tpl" type="text/x-template" ></script>
-    <script id="issue-tpl" src="templates/issue.tpl" type="text/x-template"></script>
     <script id="torrent-collection-tpl"src="templates/torrent_collection.tpl" type="text/x-template" ></script>
     <script id="keyboard-tpl" src="templates/keyboard.tpl" type="text/x-template"></script>
     <script id="notification-tpl" src="templates/notification.tpl" type="text/x-template"></script>
@@ -64,7 +62,7 @@
     <script src="vendor/videojshooks.js"></script>
     <script src="vendor/videojsplugins.js"></script>
     <script src="lib/jquery.plugins.js"></script>
-    <script src="/node_modules/videojs-youtube/src/youtube.js"></script>
+    <script src="/node_modules/videojs-youtube/dist/vjs.youtube.js"></script>
 
     <!-- App Initialization -->
     <script src="database.js"></script>
@@ -84,6 +82,9 @@
     <script src="lib/subtitle/generic.js"></script>
     <script src="lib/subtitle/server.js"></script>
     <script src="lib/streamer.js"></script>
+
+    <!-- App Plugins -->
+    <script src="lib/plugins/media-name.js"></script>
 
     <!-- Backbone Models -->
     <script src="lib/models/filter.js"></script>
@@ -122,7 +123,6 @@
     <script src="lib/views/torrent_collection.js"></script>
     <script src="lib/views/file_selector.js"></script>
     <script src="lib/views/help.js"></script>
-    <script src="lib/views/issue.js"></script>
     <script src="lib/views/keyboard.js"></script>
     <script src="lib/views/notification.js"></script>
     <script src="lib/views/player/loading.js"></script>

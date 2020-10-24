@@ -124,7 +124,7 @@
     },
 
     setUiStates: function() {
-      $('.star-container,.movie-imdb-link,.q720,input,.magnet-link').tooltip({
+      $('.star-container,.movie-imdb-link,.q720,input,.magnet-link,.show-cast').tooltip({
         html: true
       });
 
@@ -204,7 +204,7 @@
         lang: this.audio_selected
       };
 
-      var torrent = providers.torrent.resolveStream
+      const torrent = providers.torrent.resolveStream
         ? providers.torrent.resolveStream(
             defaultTorrent,
             filters,
@@ -212,8 +212,13 @@
           )
         : defaultTorrent;
 
-      App.vent.trigger('stream:download', torrent);
+      App.vent.trigger('stream:download', torrent, this.model.get('title') /*mediaName*/);
+      App.previousview = App.currentview;
+      App.currentview = 'Seedbox';
       App.vent.trigger('seedbox:show');
+      $('.filter-bar').find('.active').removeClass('active');
+      $('#filterbar-seedbox').addClass('active');
+      $('#nav-filters').hide();
     },
 
     startStreaming: function() {

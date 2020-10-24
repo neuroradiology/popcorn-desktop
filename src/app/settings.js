@@ -91,14 +91,21 @@ Settings.providers = {
 Settings.trackers = {
   blacklisted: ['demonii'],
   forced: [
-    'udp://glotorrents.pw:6969/announce',
-    'udp://tracker.opentrackr.org:1337/announce',
-    'udp://torrent.gresille.org:80/announce',
-    'udp://tracker.openbittorrent.com:80',
+    'udp://glotorrents.pw:6969',
+    'udp://tracker.opentrackr.org:1337',
+    'udp://torrent.gresille.org:80',
+    'udp://tracker.openbittorrent.com:1337',
     'udp://tracker.coppersurfer.tk:6969',
     'udp://tracker.leechers-paradise.org:6969',
     'udp://p4p.arenabg.ch:1337',
+    'udp://p4p.arenabg.com:1337',
     'udp://tracker.internetwarriors.net:1337',
+    'udp://9.rarbg.to:2710',
+    'udp://9.rarbg.me:2710',
+    'udp://exodus.desync.com:6969',
+    'udp://tracker.cyberia.is:6969',
+    'udp://tracker.torrent.eu.org:451',
+    'udp://tracker.open-internet.nl:6969',
     'wss://tracker.openwebtorrent.com',
     'wss://tracker.btorrent.xyz'
   ]
@@ -126,6 +133,7 @@ Settings.postersJump = [134, 154, 174, 194, 214, 234, 254, 274, 294];
 //Playback
 Settings.alwaysFullscreen = false;
 Settings.playNextEpisodeAuto = true;
+Settings.activateLoCtrl = false;
 Settings.chosenPlayer = 'local';
 
 // Advanced UI
@@ -136,6 +144,7 @@ Settings.hideSeasons = true;
 Settings.startScreen = 'Movies';
 Settings.lastTab = '';
 Settings.rememberFilters = false;
+Settings.animeTabDisable = false;
 
 // Quality
 Settings.shows_default_quality = '720p';
@@ -145,10 +154,11 @@ Settings.movies_quality = 'all';
 
 // Subtitles
 Settings.subtitle_language = 'none';
-Settings.subtitle_size = '28px';
+Settings.subtitle_size = '38px';
 Settings.subtitle_color = '#ffffff';
 Settings.subtitle_decoration = 'Outline';
 Settings.subtitle_font = 'Arial';
+Settings.multipleExtSubtitles = false;
 
 // More options
 Settings.httpApiEnabled = false;
@@ -185,13 +195,19 @@ Settings.automaticUpdating = true;
 Settings.UpdateSeed = false;
 Settings.events = true;
 Settings.minimizeToTray = false;
-Settings.bigPicture = false;
+Settings.bigPicture = 100;
 
 // Features
-Settings.activateTorrentCollection = false;
+Settings.activateTorrentCollection = true;
 Settings.activateWatchlist = true;
-Settings.activateRandomize = true;
+Settings.activateTempf = true;
+Settings.activateSeedbox = true;
 Settings.onlineSearchEngine = 'ExtraTorrent';
+Settings.toggleSengines = false;
+Settings.enableThepiratebaySearch = true;
+Settings.enable1337xSearch = true;
+Settings.enableRarbgSearch = true;
+Settings.enableOmgtorrentSearch = true;
 
 // Ratio
 Settings.totalDownloaded = 0;

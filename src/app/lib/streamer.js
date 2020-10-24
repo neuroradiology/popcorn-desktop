@@ -53,7 +53,7 @@
                   }
 
                   App.WebTorrent.add(data, {
-                      path      : App.settings.tmpLocation + '/' + file,
+                      path      : App.settings.tmpLocation,
                       maxConns  : 5,
                       dht       : true,
                       announce  : Settings.trackers.forced,
@@ -88,19 +88,24 @@
             }.bind(this)).then(this.waitForBuffer.bind(this)).catch(this.handleErrors.bind(this));
         },
 
-        download: function(torrent) {
+        download: function(torrent, mediaName = '') {
             // if webtorrent is created/running, we stop/destroy it
             if (App.WebTorrent.destroyed) {
                 this.stop();
             }
 
             // handles magnet and hosted torrents
-            var uri = torrent.magnet || torrent.url || torrent;
+            const uri = Common.getTorrentUri(torrent);
             const parseTorrent = require('parse-torrent');
             var infoHash = '';
             try { infoHash = parseTorrent(uri).infoHash; } catch (err) {}
+
+            if (mediaName) {
+                App.plugins.mediaName.setMediaName(infoHash, mediaName);
+            }
+
             App.WebTorrent.add(uri, {
-              path      : App.settings.tmpLocation + '/' + infoHash,
+              path      : App.settings.tmpLocation,
               maxConns  : 5,
               dht       : true,
               announce  : Settings.trackers.forced,
@@ -114,17 +119,53 @@
         stop: function() {
             if (this.torrent) {
                 // update ratio
-                AdvSettings.set('totalDownloaded', Settings.totalDownloaded + this.downloaded);
-                AdvSettings.set('totalUploaded', Settings.totalUploaded + this.uploaded);
-                this.torrent.pause();
-                // complete fause torrent, stop download data
-                for (const id in this.torrent._peers) {
-                  this.torrent.removePeer(id);
-                }
+                AdvSettings.set('totalDownloaded', Settings.totalDownloaded + this.torrent.downloaded);
+                AdvSettings.set('totalUploaded', Settings.totalUploaded + this.torrent.uploaded);
 
-                this.torrent._xsRequests.forEach(req => {
-                  req.abort();
-                });
+                if (Settings.activateSeedbox) {
+                    this.torrent.pause();
+                    // complete fause torrent, stop download data
+                    for (const id in this.torrent._peers) {
+                      this.torrent.removePeer(id);
+                    }
+
+                    this.torrent._xsRequests.forEach(req => {
+                      req.abort();
+                    });
+                } else {
+                    this.torrent.destroy();
+                }
+            }
+
+            if (this.video) {
+                this.video.pause();
+                this.video.src = '';
+                this.video.load();
+                this.video = null;
+            }
+
+            this.torrent = null;
+            this.torrentModel = null;
+            this.stateModel = null;
+            this.streamInfo = null;
+            this.subtitleReady = false;
+            this.canPlay = false;
+            this.stopped = true;
+            clearInterval(this.updateStatsInterval);
+            this.updateStatsInterval = null;
+
+            App.vent.off('subtitle:downloaded');
+            App.SubtitlesServer.stop();
+            win.info('Streaming cancelled');
+        },
+
+        stopFS: function() {
+            if (this.torrent) {
+                // update ratio
+                AdvSettings.set('totalDownloaded', Settings.totalDownloaded + this.torrent.downloaded);
+                AdvSettings.set('totalUploaded', Settings.totalUploaded + this.torrent.uploaded);
+
+                this.torrent.destroy();
             }
 
             if (this.video) {
@@ -176,7 +217,7 @@
 
                 if (!this.torrent) {
                   this.torrent = App.WebTorrent.add(uri, {
-                      path: App.settings.tmpLocation + '/' + infoHash,
+                      path: App.settings.tmpLocation,
                       announce: Settings.trackers.forced
                   });
                 }
@@ -254,8 +295,10 @@
                 tvdb: metadatas.type === 'movie' ? false : metadatas.show.ids.tvdb,
                 tmdb: metadatas.type === 'movie' ? metadatas.movie.ids.tmdb : false
             }).then(function (img) {
-                this.torrentModel.set('backdrop', img.background);
-                this.torrentModel.set('poster', img.poster);
+                if (this.torrentModel) {
+                    this.torrentModel.set('backdrop', img.background);
+                    this.torrentModel.set('poster', img.poster);
+                }
             }.bind(this));
         },
 
@@ -266,6 +309,10 @@
             }
 
             var fileName = this.torrentModel.get('video_file').name;
+
+            if (this.torrentModel) {
+                this.torrentModel.set('title', fileName); 
+            }
 
             App.Trakt.client.matcher.match({
                 filename: fileName,
@@ -298,15 +345,19 @@
                         throw 'trakt.matcher.match failed';
                 }
 
-                this.torrentModel.set(props);
+                if (this.torrentModel) {
+                    this.torrentModel.set(props);
+                }
                 this.lookForImages(metadatas);
                 this.handleSubtitles();
 
             }.bind(this)).catch(function(err) {
-                win.error('An error occured while trying to get metadata', err);
-                this.torrentModel.set('title', fileName);
+                if (this.torrentModel) {
+                    this.torrentModel.set('title', fileName);
+                }
                 this.handleSubtitles();
             }.bind(this));
+            setTimeout(() => { if (!this.subtitleReady) { this.handleSubtitles(); }}, 20000);
         },
 
         // set video file name & index
@@ -402,7 +453,6 @@
             this.updateStatsInterval = setInterval(this.streamInfo.updateStats.bind(this.streamInfo), 1000);
             this.streamInfo.updateInfos();
             this.torrentModel.on('change', this.streamInfo.updateInfos.bind(this.streamInfo));
-            return App.vent.trigger('stream:started', this.stateModel);
         },
 
         // dummy element to fire stream:start
@@ -445,6 +495,7 @@
                 show_controls: false,
                 streamInfo: this.streamInfo
             });
+            App.vent.trigger('stream:started', this.stateModel);
         },
 
         watchState: function () {
@@ -477,7 +528,7 @@
                 }
             }
 
-            if (state === 'ready' && !this.subtitleReady) {
+            if ((state === 'ready' || state === 'playingExternally') && !this.subtitleReady) {
                 state = 'waitingForSubtitles'; // can be played but subs aren't there yet
             }
             this.stateModel.set('state', state);
@@ -501,8 +552,9 @@
 
             win.info(total + ' subtitles found');
 
-
-            this.torrentModel.set('subtitle', subtitles);
+            if (this.torrentModel) {
+                this.torrentModel.set('subtitle', subtitles);
+            }
 
             if (defaultSubtitle !== 'none') {
                 if (total === 0) {
@@ -534,16 +586,13 @@
                                         type: 'error',
                                         autoclose: true
                                     }));
-                                    // if 0 subtitles found code will not stuck at 'waiting for subtitle'
-                                    this.subtitleReady = true;
                                 } else {
                                     App.SubtitlesServer.start(res);
                                     this.subtitleReady = true;
                                     this.streamInfo.set('subServer', 'http://127.0.0.1/data.vtt');
                                 }
                             }.bind(this));
-                        }
-                        else {
+                        } else {
                             this.subtitleReady = true;
                         }
 
@@ -608,6 +657,7 @@
                     }
                 }.bind(this));
 
+            setTimeout(() => { if (!this.subtitleReady) { this.subtitleReady = true; }}, 20000);
             return;
         },
 
@@ -654,6 +704,7 @@
     App.vent.on('stream:loadExistTorrents', streamer.initExistTorrents.bind(streamer));
     App.vent.on('stream:start', streamer.start.bind(streamer));
     App.vent.on('stream:stop', streamer.stop.bind(streamer));
+    App.vent.on('stream:stopFS', streamer.stopFS.bind(streamer));
     App.vent.on('stream:download', streamer.download.bind(streamer));
     App.vent.on('stream:serve_subtitles', streamer.serveSubtitles.bind(streamer));
 })(window.App);

@@ -37,7 +37,7 @@
                         <td><%= i18n.__("Switch to previous tab") %></td>
                     </tr>
                     <tr>
-                        <td><span class="key control"><%= i18n.__("ctrl") %></span>+<span class="key">1</span><%= i18n.__("through") %></span><span class="key control"><%= i18n.__("ctrl") %></span>+<span class="key">3</span></td>
+                        <td><span class="key control"><%= i18n.__("ctrl") %></span>+<span class="key">1</span><%= i18n.__("through") %></span><span class="key control"><%= i18n.__("ctrl") %></span>+<span class="key">4</span></td>
                         <td><%= i18n.__("Switch to corresponding tab") %></td>
                     </tr>
                     <tr>
@@ -63,10 +63,6 @@
                     <tr>
                         <td><span class="key control"><%= i18n.__("ctrl") %></span>+<span class="key control">ALT</span>+<span class="key">F</span></td>
                         <td><%= i18n.__("Toggle Fullscreen") %></td>
-                    </tr>
-                    <tr>
-                        <td><span class="key shiftleft"><%= i18n.__("shift") %></span>+<span class="key">B</span></td>
-                        <td><%= i18n.__("Big Picture Mode") %></td>
                     </tr>
                     <tr>
                         <td><span class="key control"><%= i18n.__("ctrl") %></span>+<span class="key">F</span></td>
@@ -205,6 +201,14 @@
                         <td><%= i18n.__("Toggle Mute") %></td>
                     </tr>
                     <tr>
+                        <td><span class="key">c</span></td>
+                        <td><%= i18n.__("Toggle Crop to Fit screen") %></td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">v</span></td>
+                        <td><%= i18n.__("Toggle Subtitles") %></td>
+                    </tr>
+                    <tr>
                         <td><span class="key">h</span></td>
                         <td><%= i18n.__("Offset Subtitles by") %> +0.1s</td>
                     </tr>
@@ -251,10 +255,6 @@
                     <tr>
                         <td><span class="key control"><%= i18n.__("ctrl") %></span>+<span class="key">l</span></td>
                         <td><%= i18n.__('Set playback rate to %s', '4x') %></td>
-                    </tr>
-                    <tr>
-                        <td><span class="key">u</span></td>
-                        <td><%= i18n.__("Show Stream URL") %></td>
                     </tr>
                     <tr>
                         <td><span class="key">1</span></td>

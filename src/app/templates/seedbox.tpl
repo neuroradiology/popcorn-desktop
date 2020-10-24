@@ -5,10 +5,7 @@
       <div class="seedbox-torrents">
         <div class="seedbox-torrent-title"></div>
         <div class="notorrents-info">
-            <div class="notorrents-frame">
-                <i class="fa fa-download notorrents-icon"></i>
-                <p class="notorrents-message"><%= i18n.__("Download or Watch a movie")%></p>
-            </div>
+          <span><%= i18n.__('Download list is empty...') %></span>
         </div>
         <div class="seedbox-torrent-list">
           <ul class="file-list">
@@ -19,8 +16,8 @@
         <div class="seedbox-infos">
           <b><div class="seedbox-infos-title"></div></b>
           <div class="seedbox-infos-links">
-              <div data-toggle="tooltip" data-placement="left" title="" class="fa fa-magnet magnet-icon" data-original-title="Magnet link"></div>
-              <div data-toggle="tooltip" data-placement="left" title="" class="fa fa-circle health-icon None Good" data-original-title="Health Good - Ratio: 3.57 <br> Seeds: 75 - Peers: 21"></div>
+              <div data-toggle="tooltip" data-placement="left" title="<%=i18n.__('Magnet link') %>" class="fa fa-magnet magnet-icon"></div>
+              <div data-toggle="tooltip" data-placement="left" title="<%=i18n.__('Health Unknown') %>" class="fa fa-circle health-icon None"></div>
           </div>
           <div class="seedbox-infos-aired">
               <i class="fa fa-upload watched seedbox-uploaded"></i>
@@ -39,8 +36,8 @@
                        <% } else { %>
                             <div class="item-icon magnet-icon tooltipped" data-toogle="tooltip" data-placement="right" title="<%=i18n.__("Magnet link") %>"></div>
                         <% } %>
-                            <i class="fa fa-trash-o item-delete tooltipped" data-toggle="tooltip" data-placement="left" title="<%= i18n.__("Remove this torrent") %>"></i>
-                            <i class="fa fa-pencil item-rename tooltipped" data-toggle="tooltip" data-placement="left" title="<%= i18n.__("Rename this torrent") %>"></i>
+                            <i class="fa fa-trash item-delete tooltipped" data-toggle="tooltip" data-placement="left" title="<%= i18n.__("Remove this torrent") %>"></i>
+                            <i class="fa fa-pencil-alt item-rename tooltipped" data-toggle="tooltip" data-placement="left" title="<%= i18n.__("Rename this torrent") %>"></i>
                             </a>
                         </li>
                     <% }); %>

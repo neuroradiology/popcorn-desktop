@@ -62,6 +62,7 @@
             padding-bottom 10px
             text-overflow ellipsis
             word-wrap break-word
+            display inline-block
 
         .external-play
             font-size 14px
@@ -91,7 +92,7 @@
 
         .playing-progressbar
             position relative
-            margin-bottom 10px
+            margin-bottom 4px
             margin-top 10px
             background-color #bababa
             border-radius 13px
@@ -105,9 +106,9 @@
 
         .player-controls
             text-align center
-            margin-left 40px
+            margin-left 30px
             color $Text1
-            font-size 24px
+            font-size 14px
             margin-top 20px
             i
                 cursor pointer
@@ -156,7 +157,7 @@
             cursor pointer
             width 120px
             height 35px
-            margin auto
+            margin 20px auto auto auto
             -moz-border-radius 3px
             -webkit-border-radius 3px
             border-radius 3px
@@ -184,17 +185,52 @@
                 top 12px
                 font-size 12px
 
+        .open-button
+            visibility hidden
+            z-index 2
+            cursor pointer
+            width 35px
+            height 35px
+            margin -35px auto auto 297px
+            -moz-border-radius 3px
+            -webkit-border-radius 3px
+            border-radius 3px
+            -moz-background-clip padding
+            -webkit-background-clip padding-box
+            background-clip padding-box
+            background-color #27ae60
+            -webkit-backface-visibility hidden
+            transition all .5s
+
+            &:hover
+                background: #27ae60
+                text-decoration: none
+
+            &:active
+                box-shadow: inset 0 1px 4px rgba(0,0,0,0.6)
+                background: #27ae60
+
+            .open-button-text
+                -webkit-backface-visibility hidden
+                position relative
+                color #fff
+                font-family $MainFont, $Font, $AlternateFont
+                -webkit-font-smoothing antialiased
+                text-align center
+                top 12px
+                font-size 12px
+
         .loading-info
-            width 60%
-            max-width 300px
+            width auto
             height auto
             margin auto
             padding 10px
-            padding-bottom 20px
+            padding-bottom 10px
             border-radius 4px
             left 0
             right 0
             background: rgba(0, 0, 0, .6)
+            display inline-block
 
             span
                 position relative
@@ -206,8 +242,10 @@
 
                 &.loading-info-text
                     float left
+                    padding-right 30px
                 &.value
                     float right
+                    text-align right
 
             .buffer_percent
                 text-align center

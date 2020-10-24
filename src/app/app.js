@@ -101,6 +101,8 @@ App.WebTorrent = new WebTorrent({
   dht: true
 });
 
+App.plugins = {};
+
 fs.readFile('./.git.json', 'utf8', function (err, json) {
   if (!err) {
     App.git = JSON.parse(json);
@@ -127,15 +129,6 @@ App.onBeforeStart = function (options) {
   var zoom = 0;
 
   var screen = window.screen;
-
-  if (ScreenResolution.QuadHD) {
-    zoom = 2;
-  }
-  /*
-	if (ScreenResolution.UltraHD) {
-		zoom = 4;
-	}
-	*/
 
   var width = parseInt(
     localStorage.width ? localStorage.width : Settings.defaultWidth
@@ -200,29 +193,33 @@ var initApp = function () {
   } catch (e) {
     console.error('Couldn\'t start app: ', e, e.stack);
   }
+
+  if (localStorage.maximized === 'true') {
+    win.maximize();
+  }
 };
 
 App.onStart = function (options) {
   initTemplates().then(initApp);
 };
 
-var deleteFolder = function (path) {
-  if (typeof path !== 'string') {
+var deleteFolder = function (folderPath) {
+  if (typeof folderPath !== 'string') {
     return;
   }
 
   var files = [];
-  if (fs.existsSync(path)) {
-    files = fs.readdirSync(path);
-    files.forEach(function (file, index) {
-      var curPath = path + '\/' + file;
+  if (fs.existsSync(folderPath)) {
+    files = fs.readdirSync(folderPath);
+    files.forEach(function (file) {
+      var curPath = path.join(folderPath, file);
       if (fs.lstatSync(curPath).isDirectory()) {
         deleteFolder(curPath);
       } else {
         fs.unlinkSync(curPath);
       }
     });
-    fs.rmdirSync(path);
+    fs.rmdirSync(folderPath);
   }
 };
 
@@ -258,9 +255,16 @@ var deleteCookies = function () {
   });
 };
 
-var delCache = function () {
+var deleteCache = function () {
   window.indexedDB.deleteDatabase('cache');
   win.close(true);
+};
+
+var deleteLogs = function() {
+  var dataPath = path.join(data_path, 'logs.txt');
+  if (fs.existsSync(dataPath)) {
+    fs.unlinkSync(dataPath);
+  }
 };
 
 win.on('resize', function (width, height) {
@@ -275,24 +279,77 @@ win.on('move', function (x, y) {
 
 win.on('enter-fullscreen', function () {
   App.vent.trigger('window:focus');
+  win.setResizable(false);
+});
+
+win.on('leave-fullscreen', function () {
+  win.setResizable(true);
+});
+
+win.on('maximize', function () {
+  win.setResizable(false);
+  localStorage.maximized = true;
+});
+
+win.on('restore', function () {
+  win.setResizable(true);
+  localStorage.maximized = false;
 });
 
 // Now this function is used via global keys (cmd+q and alt+f4)
 function close() {
   $('.spinner').show();
 
-  App.WebTorrent.destroy(function () {
-    if (App.settings.deleteTmpOnClose) {
-      deleteFolder(App.settings.tmpLocation);
-    }
-    if (fs.existsSync(path.join(data_path, 'logs.txt'))) {
-      fs.unlinkSync(path.join(data_path, 'logs.txt'));
-    }
+  // If the WebTorrent is destroyed, that means the user has already clicked the close button.
+  // Try to let the WebTorrent destroy from that closure. Even if it fails, the window will close.
+  if (App.WebTorrent.destroyed) {
+    return;
+  }
+
+  // For some reason, WebTorrent does not have a standard way of passing back errors from destroy()
+  // some errors are thrown from the method, some are sent in the callback, and it seems that there
+  // is a possibility for some to be emitted. In order to ensure that we always close the client,
+  // these are all aggregated into a single callback.
+  var destroyWebTorrentAndPerformCleanup = function (cb) {
+    var onError;
+    var cleanup = function () {
+      App.WebTorrent.removeListener('error', onError);
+    };
+    // js hint doesn't allow us to use cleanup before it is defined,
+    // even though we know it will be when this function is called.
+    onError = function (err) {
+      cleanup();
+      cb(err);
+    };
     try {
-      delCache();
-    } catch (e) {
-      win.close(true);
+      App.WebTorrent.once('error', onError);
+      App.WebTorrent.destroy(function (err) {
+        try {
+          if (err) {
+            return onError(err);
+          }
+          if (App.settings.deleteTmpOnClose) {
+            deleteFolder(App.settings.tmpLocation);
+          }
+          deleteLogs();
+          deleteCache();
+        } catch (err) {
+          return onError(err);
+        }
+        cb(null);
+      });
+    } catch (err) {
+      onError(err);
     }
+  };
+
+  destroyWebTorrentAndPerformCleanup(function(err) {
+    if (err) {
+      win.error(err);
+    }
+    // we always want to close the window if the user has asked for it to be closed.
+    // regardless of whether any error is present, win.close should be called
+    win.close(true);
   });
 }
 
@@ -356,37 +413,6 @@ Mousetrap.bindGlobal(
   function (e) {
     e.preventDefault();
     win.toggleFullscreen();
-  },
-  'keydown'
-);
-Mousetrap.bind(
-  'shift+b',
-  function (e) {
-    if (!ScreenResolution.SD) {
-      if (App.settings.bigPicture) {
-        win.zoomLevel = Settings.noBigPicture || 0;
-        AdvSettings.set('bigPicture', false);
-      } else {
-        win.maximize();
-        AdvSettings.set('noBigPicture', win.zoomLevel);
-        AdvSettings.set('bigPicture', true);
-        var zoom = ScreenResolution.HD ? 2 : 3;
-        win.zoomLevel = zoom;
-      }
-    } else {
-      App.vent.trigger(
-        'notification:show',
-        new App.Model.Notification({
-          title: i18n.__('Big Picture Mode'),
-          body: i18n.__(
-            'Big Picture Mode is unavailable on your current screen resolution'
-          ),
-          showRestart: false,
-          type: 'error',
-          autoclose: true
-        })
-      );
-    }
   },
   'keydown'
 );

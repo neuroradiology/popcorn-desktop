@@ -33,6 +33,7 @@ function formatFetch(animes) {
     return {
       images: { 
         poster: 'https://media.kitsu.io/anime/poster_images/' + anime._id + '/large.jpg',
+        banner: 'https://media.kitsu.io/anime/cover_images/' + anime._id + '/original.jpg',
         fanart: 'https://media.kitsu.io/anime/cover_images/' + anime._id + '/original.jpg',
       },
       mal_id: anime._id,
@@ -70,11 +71,10 @@ function formatDetail(anime) {
     network: [], //FIXME
     rating: anime.rating,
     images: { 
-        poster: 'https://media.kitsu.io/anime/poster_images/' + anime._id + '/large.jpg',
-        fanart: 'https://media.kitsu.io/anime/cover_images/' + anime._id + '/original.jpg',
-      },
-    backdrop: anime.images.fanart,
-    poster: anime.images.poster,
+      poster: 'https://media.kitsu.io/anime/poster_images/' + anime._id + '/large.jpg',
+      banner: 'https://media.kitsu.io/anime/cover_images/' + anime._id + '/original.jpg',
+      fanart: 'https://media.kitsu.io/anime/cover_images/' + anime._id + '/original.jpg',
+    },
     year: anime.year,
     type: anime.type
   };

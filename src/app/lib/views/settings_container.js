@@ -29,7 +29,10 @@
             'click .open-tmp-folder': 'openTmpFolder',
             'click .open-database-folder': 'openDatabaseFolder',
             'click .export-database': 'exportDatabase',
-            'click .import-database': 'importDatabase',
+            'click #importdatabase': 'importDatabase',
+            'change #import-watched, #import-bookmarks, #import-settings': 'checkImportSettings',
+            'click .import-db': 'openModal',
+            'click .modal-overlay, .modal-close': 'closeModal',
             'click #authTrakt': 'connectTrakt',
             'click #unauthTrakt': 'disconnectTrakt',
             'click #connect-with-tvst': 'connectWithTvst',
@@ -39,9 +42,7 @@
             'click .reset-tvshow': 'resettvshow',
             'change #tmpLocation': 'updateCacheDirectory',
             'click #syncTrakt': 'syncTrakt',
-            'click .qr-code': 'generateQRcode',
-            'click #qrcode-overlay': 'closeModal',
-            'click #qrcode-close': 'closeModal'
+            'click .qr-code': 'generateQRcode'
         },
 
         onAttach: function () {
@@ -160,13 +161,32 @@
                     pass: $('#httpApiPassword').val()
                 };
             $('#qrcode').qrcode({
+                'left': 5,
+                'top': 5,
+                'size': 190,
+                'background': '#fff',
                 'text': JSON.stringify(QRCodeInfo)
             });
             $('#qrcode-modal, #qrcode-overlay').fadeIn(500);
         },
 
-        closeModal: function () {
-            $('#qrcode-modal, #qrcode-overlay').fadeOut(500);
+
+        openModal: function (e) {
+            var el = $(e.currentTarget);
+
+            if (el[0].classList.contains('import-db')) {
+                $('#importdb-modal, #importdb-overlay').fadeIn(500);
+            }
+        },        
+
+        closeModal: function (e) {
+            var el = $(e.currentTarget);
+
+            if (el.attr('id').startsWith('qrcode-')) {
+                $('#qrcode-modal, #qrcode-overlay').fadeOut(500);
+            } else if (el.attr('id').startsWith('importdb-') || el.attr('id') == 'importdatabase') {
+                $('#importdb-modal, #importdb-overlay').fadeOut(500);
+            }
         },
 
         showHelp: function () {
@@ -223,6 +243,15 @@
                 case 'theme':
                     value = $('option:selected', field).val();
                     break;
+                case 'poster_size':
+                    value = $('option:selected', field).val();
+                    App.db.writeSetting({
+                        key: 'postersWidth',
+                        value: value
+                    }).then(function () {
+                        App.vent.trigger('updatePostersSizeStylesheet');
+                    });
+                    break;
                 case 'language':
                     value = $('option:selected', field).val();
                     i18n.setLocale(value);
@@ -243,15 +272,15 @@
                 case 'events':
                 case 'alwaysFullscreen':
                 case 'minimizeToTray':
-                case 'bigPicture':
                 case 'activateTorrentCollection':
+                case 'activateSeedbox':
                 case 'activateWatchlist':
-                case 'activateRandomize':
+                case 'activateTempf':
                 case 'opensubtitlesAutoUpload':
                 case 'subtitles_bold':
+                case 'multipleExtSubtitles':
                 case 'rememberFilters':
                 case 'animeTabDisable':
-                case 'indieTabDisable':
                     value = field.is(':checked');
                     break;
                 case 'httpApiEnabled':
@@ -269,15 +298,32 @@
                 case 'maxActiveTorrents':
                     value = field.val();
                     break;
+                case 'bigPicture':
+                    var nvalue = field.val().replace(/[^0-9]/gi, '');
+                    if (nvalue === '') {
+                        nvalue = AdvSettings.get('bigPicture');
+                    } else if (nvalue < 25) {
+                        nvalue = 25;
+                    } else if (nvalue > 400) {
+                        nvalue = 400;
+                    }
+                    field.val(nvalue + '%')
+                    value = nvalue;
+                    win.zoomLevel = Math.log(value/100) / Math.log(1.2);
+                    break;
                 case 'tmpLocation':
                     tmpLocationChanged = true;
                     value = path.join(field.val(), 'Popcorn-Time');
                     break;
                 case 'opensubtitlesUsername':
                 case 'opensubtitlesPassword':
+                case 'import-watched':
+                case 'import-bookmarks':
+                case 'import-settings':
                     return;
                 default:
                     win.warn('Setting not defined: ' + field.attr('name'));
+                    return;
             }
             win.info('Setting changed: ' + field.attr('name') + ' - ' + value);
 
@@ -377,18 +423,10 @@
                         App.vent.trigger('settings:show');
                     }
                     break;
-                case 'indieTabDisable':
-                    var indieTab = $('.indieTabShow');
-                    if (indieTab.css('display') === 'none') {
-                        indieTab.css('display', 'block');
-                    } else {
-                        indieTab.css('display', 'none');
-                        App.vent.trigger('movies:list');
-                        App.vent.trigger('settings:show');
-                    }
-                    break;
-                case 'activateRandomize':
                 case 'activateWatchlist':
+                case 'activateTempf':
+                case 'activateSeedbox':
+                case 'multipleExtSubtitles':
                     App.vent.trigger('movies:list');
                     App.vent.trigger('settings:show');
                     break;
@@ -402,29 +440,6 @@
                     App.Providers.delete('tvshow');
                     App.vent.trigger('movies:list');
                     App.vent.trigger('settings:show');
-                    break;
-                case 'bigPicture':
-                    if (!ScreenResolution.SD) {
-                        if (App.settings.bigPicture) {
-                            win.maximize();
-                            AdvSettings.set('noBigPicture', win.zoomLevel);
-                            var zoom = ScreenResolution.HD ? 2 : 3;
-                            win.zoomLevel = zoom;
-                        } else {
-                            win.zoomLevel = AdvSettings.get('noBigPicture') || 0;
-                        }
-                    } else {
-                        AdvSettings.set('bigPicture', false);
-                        win.info('Setting changed: bigPicture - true');
-                        $('input#bigPicture.settings-checkbox').attr('checked', false);
-                        App.vent.trigger('notification:show', new App.Model.Notification({
-                            title: i18n.__('Big Picture Mode'),
-                            body: i18n.__('Big Picture Mode is unavailable on your current screen resolution'),
-                            showRestart: false,
-                            type: 'error',
-                            autoclose: true
-                        }));
-                    }
                     break;
                 default:
             }
@@ -624,10 +639,10 @@
             var zip = new AdmZip();
             var btn = $(e.currentTarget);
             var databaseFiles = fs.readdirSync(App.settings['databaseLocation']);
-            var fileinput = document.querySelector('input[id=exportdatabase]');
+            var fileinput = $('input[id=exportdatabase]');
 
-            $('#exportdatabase').on('change', function () {
-                var path = fileinput.value;
+            fileinput.on('change', function () {
+                var path = fileinput.val();
                 try {
                     databaseFiles.forEach(function (entry) {
                         zip.addLocalFile(App.settings['databaseLocation'] + '/' + entry);
@@ -641,22 +656,42 @@
                 } catch (err) {
                     console.log(err);
                 }
+                // reset fileinput so it detect change even if we select same folder again
+                fileinput.val('');
             });
 
         },
 
-        importDatabase: function () {
+        importDatabase: function (e) {
 
-            var fileinput = document.querySelector('input[id=importdatabase]');
+            var fileinput = $('input[id=importdatabase]');
+            var importTypes = $('#importdb-modal input[type=checkbox]:checked');
 
-
-            $('#importdatabase').on('change', function () {
-                var path = fileinput.value;
+            fileinput.on('change', function () {
+                var path = fileinput.val();
                 fs.readFile(path, function (err, content) {
                     that.alertMessageWait(i18n.__('Importing Database...'));
                     try {
                         var zip = new AdmZip(content);
-                        zip.extractAllTo(App.settings['databaseLocation'] + '/', /*overwrite*/ true);
+                        var targetFolder = App.settings['databaseLocation'] + '/';
+                        for (const el of importTypes) {
+                            switch (el.id) {
+                                case 'import-bookmarks':
+                                    zip.extractEntryTo("bookmarks.db", targetFolder, /*maintainEntryPath*/ false, /*overwrite*/ true);
+                                    // movies.db and shows.db are required for favourites tab view
+                                    zip.extractEntryTo("movies.db", targetFolder, false, true);
+                                    zip.extractEntryTo("shows.db", targetFolder, false, true);
+                                break;
+                                case 'import-settings':
+                                    zip.extractEntryTo("settings.db", targetFolder, false, true);
+                                break;
+                                case 'import-watched':
+                                    zip.extractEntryTo("watched.db", targetFolder, false, true);
+                                break;
+                            }
+                        }
+                        that.closeModal(e);
+                        win.info('Database imported from %s', path);
                         that.alertMessageSuccess(true);
                     }
                     catch (err) {
@@ -664,10 +699,26 @@
                         that.alertMessageFailed(i18n.__('Invalid Database File Selected'));
                         win.warn('Failed to Import Database');
                     }
+                    // reset fileinput so it detect change even if we select same folder again
+                    fileinput.val('');
                 });
             });
 
         },
+
+        checkImportSettings: function () {
+            var importBtn = $('input[id=importdatabase]');
+            var importTypes = $('#importdb-modal input[type=checkbox]:checked');
+            if (importTypes.length === 0) {
+                importBtn.attr('disabled','disabled');
+                importBtn.parent().addClass('disabled');
+            }
+            else{
+                importBtn.removeAttr('disabled');
+                importBtn.parent().removeClass('disabled');
+            }
+        },
+
 
         updateCacheDirectory: function (e) {
             var field = $('#tmpLocation');

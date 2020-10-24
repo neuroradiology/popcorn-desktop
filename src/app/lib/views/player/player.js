@@ -1,10 +1,12 @@
 (function (App) {
     'use strict';
 
+    var _this;
     var Player = Marionette.View.extend({
         template: '#player-tpl',
         className: 'player',
         player: null,
+        prevSub: null,
 
         ui: {
             eyeInfo: '.eye-info-player',
@@ -12,8 +14,8 @@
             uploadSpeed: '.upload_speed_player',
             activePeers: '.active_peers_player',
             downloaded: '.downloaded_player',
-            pause: 'fas .fa-pause',
-            play: 'fas .fa-play'
+            pause: '.fa-pause',
+            play: '.fa-play'
         },
 
         events: {
@@ -24,10 +26,12 @@
             'click .verifmetaFALSE': 'wrongMetadata',
             'click .vjs-subtitles-button': 'toggleSubtitles',
             'click .vjs-text-track': 'moveSubtitles',
+            'mousedown .eye-info-player': 'filenametoclip',
             'click .vjs-play-control': 'togglePlay'
         },
 
         initialize: function () {
+            _this = this;
             this.listenTo(this.model, 'change:downloadSpeed', this.updateDownloadSpeed);
             this.listenTo(this.model, 'change:uploadSpeed', this.updateUploadSpeed);
             this.listenTo(this.model, 'change:active_peers', this.updateActivePeers);
@@ -41,6 +45,13 @@
             this.firstPlay = true;
 
             this.boundedMouseScroll = this.mouseScroll.bind(this);
+
+            //If a child was removed from above this view
+            App.vent.on('viewstack:pop', function() {
+              if (_.last(App.ViewStack) === 'app-overlay') {
+                _this.bindKeyboardShortcuts();
+              }
+            });
         },
 
         isMovie: function () {
@@ -69,18 +80,20 @@
 
         updateDownloaded: function () {
             if (this.model.get('downloadedPercent').toFixed(0) < 100) {
-                this.ui.downloaded.html(this.model.get('downloadedFormatted') + ' (' + this.model.get('downloadedPercent').toFixed(0) + '%)');
+                this.ui.downloaded.html(this.model.get('downloadedPercent').toFixed(0) + '%&nbsp;&nbsp;&nbsp;(' + this.model.get('downloadedFormatted') + ' / ' + Common.fileSize(this.model.get('size')) + ')');
                 $('.vjs-load-progress').css('width', this.model.get('downloadedPercent').toFixed(0) + '%');
                 this.remaining = true;
 
                 if (!this.createdRemaining) { //we create it
                     this.createdRemaining = true;
-                    $('.details-info-player').append('<br><span class="remaining">' + this.remainingTime() + '</span>');
+                    $('.details-info-player #dwnloading').append('<br><span class="remaining">' + this.remainingTime() + '</span>');
                 } else { //we just update
                     $('.remaining').html(this.remainingTime());
                 }
             } else {
-                this.ui.downloaded.text(i18n.__('Done'));
+                $('.details-info-player #sstatel').text(i18n.__('Downloaded'));
+                this.ui.downloaded.html(this.model.get('downloadedPercent').toFixed(0) + '%&nbsp;&nbsp;&nbsp;(' + Common.fileSize(this.model.get('size')) + ')<br>');
+                $('.details-info-player #dloaddd, .download_speed_player, .details-info-player #apeersss, .active_peers_player').hide();
                 $('.vjs-load-progress').css('width', '100%');
                 this.remaining = false;
             }
@@ -221,6 +234,10 @@
 
                 // XXX hide watermark
                 try {
+                    document.getElementById('video_player_youtube_api').contentWindow.document.getElementsByClassName('ytp-chrome-top ytp-show-cards-title')[0].style.opacity = 0;
+                    document.getElementById('video_player_youtube_api').contentWindow.document.getElementsByClassName('ytp-gradient-top')[0].style.opacity = 0;
+                    setTimeout(function() { document.getElementById('video_player_youtube_api').contentWindow.document.getElementsByClassName('ytp-watermark yt-uix-sessionlink')[0].style.opacity = 0; }, 3000);
+                    document.getElementById('video_player_youtube_api').contentWindow.document.getElementsByClassName('ytp-pause-overlay')[0].style.opacity = 0;
                     document.getElementById('video_player_youtube_api').contentWindow.document.getElementsByClassName('html5-watermark')[0].style.opacity = 0;
                 } catch (e) {}
             }
@@ -237,6 +254,17 @@
 
                 this._AutoPlayCheckTimer = setInterval(this.checkAutoPlay, 10 * 100 * 1); // every 1 sec
             }
+        },
+
+        filenametoclip: function (e) {
+            var clipboard = nw.Clipboard.get();
+            if (e.button === 0) {
+                clipboard.set(this.model.get('filename'), 'text');
+                $('.notification_alert').text(i18n.__('The filename was copied to the clipboard')).fadeIn('fast').delay(2500).fadeOut('fast');
+            } else if (e.button === 2) {
+                clipboard.set(this.model.get('src').replace('127.0.0.1', Settings.ipAddress), 'text');
+                $('.notification_alert').text(i18n.__('The stream url was copied to the clipboard')).fadeIn('fast').delay(2500).fadeOut('fast');
+            };
         },
 
         onPlayerReady: function () {
@@ -286,10 +314,10 @@
                     this.firstPlay = false;
                     return;
                 }
-                this.ui.pause.hide().dequeue();
+                this.ui.pause.hide().dequeue().css('transform', 'scale(1)');
                 this.ui.play.appendTo('div#video_player');
-                this.ui.play.show().delay(1500).queue(function () {
-                    this.ui.play.hide().dequeue();
+                this.ui.play.show().delay(50).queue(function () {
+                    this.ui.play.css('transform', 'scale(1.8)').fadeOut(400).dequeue();
                 }.bind(this));
                 App.vent.trigger('player:play');
             }
@@ -302,10 +330,10 @@
                 this.wasSeek = true;
             } else {
                 this.wasSeek = false;
-                this.ui.play.hide().dequeue();
+                this.ui.play.hide().dequeue().css('transform', 'scale(1)');
                 this.ui.pause.appendTo('div#video_player');
-                this.ui.pause.show().delay(1500).queue(function () {
-                    this.ui.pause.hide().dequeue();
+                this.ui.pause.show().delay(50).queue(function () {
+                    this.ui.pause.css('transform', 'scale(1.8)').fadeOut(400).dequeue();
                 }.bind(this));
                 App.vent.trigger('player:pause');
                 this.sendToTrakt('pause');
@@ -356,7 +384,7 @@
             var that = this;
 
             // Double Click to toggle Fullscreen
-            $('#video_player').dblclick(function (event) {
+            $('#video_player, .state-info-player').dblclick(function (event) {
                 that.toggleFullscreen();
                 // Stop any mouseup events pausing video
                 event.preventDefault();
@@ -383,6 +411,7 @@
                     this.addClass('vjs-has-started');
                 });
                 this.ui.eyeInfo.hide();
+                $('.player-title').text(this.model.get('title') + ' - Trailer');
 
                 // XXX Sammuel86 Trailer UI Show FIX/HACK
                 $('.trailer_mouse_catch')
@@ -488,6 +517,15 @@
             }, function () {
                 clearInterval(that._ShowUIonHover);
             });
+            for(let i = 0; i < $('.vjs-menu-item').length; i++) {
+                let curSub = $('.vjs-menu-item')[i];
+                if (!curSub.innerHTML.includes(i18n.__('Disabled'))) {
+                    curSub.onclick = function() {
+                        that.prevSub = this;
+                    }
+                }
+            }
+            this.prevSub = this.model.get('defaultSubtitle') === 'none' && Settings.subtitle_language !== 'none' ? $('.vjs-menu-item:contains("' + App.Localization.langcodes[Settings.subtitle_language].nativeName +'")')[0] || $('.vjs-selected')[0] : $('.vjs-selected')[0];
         },
 
         sendToTrakt: function (method) {
@@ -633,6 +671,14 @@
                 that.closePlayer();
             });
 
+            Mousetrap.bind(['c', 'C'], function (e) {
+                that.toggleCrop();
+            }, 'keydown');
+
+            Mousetrap.bind(['v', 'V'], function (e) {
+                that.subtitlesOnOff();
+            }, 'keydown');
+
             Mousetrap.bind(['f', 'F'], function (e) {
                 that.toggleFullscreen();
             }, 'keydown');
@@ -717,10 +763,6 @@
                 that.toggleMute();
             }, 'keydown');
 
-            Mousetrap.bind(['u', 'U'], function (e) {
-                that.displayStreamURL();
-            }, 'keydown');
-
             Mousetrap.bind('j', function (e) {
                 that.adjustPlaybackRate(-0.1, true);
             }, 'keydown');
@@ -784,6 +826,10 @@
 
             Mousetrap.unbind('backspace');
 
+            Mousetrap.unbind(['c', 'C']);
+
+            Mousetrap.unbind(['v', 'V']);
+
             Mousetrap.unbind(['f', 'F']);
 
             Mousetrap.unbind('h');
@@ -825,8 +871,6 @@
             Mousetrap.unbind('ctrl+down');
 
             Mousetrap.unbind(['m', 'M']);
-
-            Mousetrap.unbind(['u', 'U']);
 
             Mousetrap.unbind(['j', 'shift+j', 'ctrl+j']);
 
@@ -882,10 +926,37 @@
             var v = this.player.volume();
             this.player.volume(v + i);
             App.vent.trigger('volumechange');
+            $('.vjs-overlay').css('opacity', '1');
         },
 
         toggleMute: function () {
             this.player.muted(!this.player.muted());
+        },
+
+        toggleCrop: function () {
+            var curVideo = $('#video_player_html5_api');
+            if (curVideo[0]) {
+                var multPer = ((curVideo[0].videoWidth / curVideo[0].videoHeight) / (screen.width / screen.height))*100;
+                if (curVideo.width() > $('#video_player').width() || curVideo.height() > $('#video_player').height()) {
+                    curVideo.css({'width': '100%', 'height': '100%', 'left': '0', 'top': '0'});
+                    this.displayOverlayMsg(i18n.__('Original'));
+                } else if (multPer > 100) {
+                    curVideo.css({'width': multPer + '%', 'left': 50-multPer/2 + '%'});
+                    this.displayOverlayMsg(i18n.__('Fit screen'));
+                } else if (multPer < 100) {
+                    curVideo.css({'height': 10000/multPer + '%', 'top': 50-5000/multPer + '%'});
+                    this.displayOverlayMsg(i18n.__('Fit screen'));
+                } else {
+                    this.displayOverlayMsg(i18n.__('Video already fits screen'));
+                }
+                $('.vjs-overlay').css('opacity', '1');
+            }
+        },
+
+        subtitlesOnOff: function () {
+            $('.vjs-selected')[0].innerHTML.includes(i18n.__('Disabled')) ? this.prevSub.click() : $('.vjs-menu-item')[0].click();
+            this.displayOverlayMsg(i18n.__('Subtitles') + ': ' + i18n.__($(".vjs-selected")[0].innerHTML));
+            $('.vjs-overlay').css('opacity', '1');
         },
 
         toggleFullscreen: function () {
@@ -898,12 +969,6 @@
             AdvSettings.set('playerSubPosition', $('.vjs-text-track').css('top'));
         },
 
-        displayStreamURL: function () {
-            var clipboard = nw.Clipboard.get();
-            clipboard.set($('#video_player video').attr('src'), 'text');
-            this.displayOverlayMsg(i18n.__('URL of this stream was copied to the clipboard'));
-        },
-
         adjustSubtitleOffset: function (s) {
             var o = this.player.options()['trackTimeOffset'];
             this.player.options()['trackTimeOffset'] = (o + s);
@@ -911,6 +976,7 @@
             if (this.customSubtitles) {
                 this.customSubtitles.modified = true;
             }
+            $('.vjs-overlay').css('opacity', '1');
         },
 
         adjustPlaybackRate: function (rate, delta) {
@@ -923,6 +989,7 @@
                     this.displayOverlayMsg(i18n.__('Playback rate') + ': ' + parseFloat(nRate.toFixed(1)) + 'x');
                 }
             }
+            $('.vjs-overlay').css('opacity', '1');
         },
 
         displayOverlayMsg: function (message) {
@@ -935,14 +1002,14 @@
                     $('.vjs-overlay').fadeOut('normal', function () {
                         $(this).remove();
                     });
-                }, 3000));
+                }, 1200));
             } else {
                 $(this.player.el()).append('<div class =\'vjs-overlay vjs-overlay-top-left\'>' + message + '</div>');
                 $.data(this, 'overlayTimer', setTimeout(function () {
                     $('.vjs-overlay').fadeOut('normal', function () {
                         $(this).remove();
                     });
-                }, 3000));
+                }, 1200));
             }
         },
 
